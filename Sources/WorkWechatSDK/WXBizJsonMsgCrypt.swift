@@ -7,6 +7,7 @@
 
 import Foundation
 import CryptoSwift
+import Crypto
 import Logging
 
 public class WXBizJsonMsgCrypt {
@@ -25,7 +26,13 @@ public class WXBizJsonMsgCrypt {
         self.logger = logger
     }
     
-    // 验证URL
+    /// 验证 URL
+    /// - Parameters:
+    ///   - sMsgSignature: 签名
+    ///   - sTimeStamp: 时间戳
+    ///   - sNonce: 随机值
+    ///   - sEchoStr: 加密消息
+    /// - Returns: 解密信息
     public func verifyURL(sMsgSignature: String, sTimeStamp: String, sNonce: String, sEchoStr: String) throws -> String {
         let pc = Prpcrypt(key: self.key, logger: self.logger)
         return try pc.decrypt(text: sEchoStr, receiveid: self.m_sReceiveId)
@@ -55,9 +62,10 @@ public class WXBizJsonMsgCrypt {
     // 签名验证
     func calSignature(timeStamp: String, nonce: String, data: String) -> String {
         let sort_arr = [self.m_sToken, timeStamp, nonce, data].sorted(by: <).joined()
-        let signatureData = sort_arr.bytes
-        let signature = signatureData.sha1().toHexString()
-        return signature
+        guard let signatureData = sort_arr.data(using: .utf8) else { return "" }
+        let digest = Insecure.SHA1.hash(data: signatureData)
+        let hexDigest = digest.map { String(format: "%02hhx", $0) }.joined()
+        return hexDigest
     }
 }
 
@@ -207,3 +215,97 @@ struct MsgCryptError: Error {
     var status: CryptError
     var reason: String
 }
+
+/*
+extension Data {
+    public init(hex: String) {
+        self.init(Array<UInt8>(hex: hex))
+    }
+    
+    public var bytes: Array<UInt8> {
+        Array(self)
+    }
+    
+    public func toHexString() -> String {
+        self.bytes.toHexString()
+    }
+}
+
+extension Array where Element == UInt8 {
+    @inlinable
+    init(reserveCapacity: Int) {
+        self = Array<Element>()
+        self.reserveCapacity(reserveCapacity)
+    }
+    
+    public init(hex: String) {
+        self.init(reserveCapacity: hex.unicodeScalars.lazy.underestimatedCount)
+        var buffer: UInt8?
+        var skip = hex.hasPrefix("0x") ? 2 : 0
+        for char in hex.unicodeScalars.lazy {
+            guard skip == 0 else {
+                skip -= 1
+                continue
+            }
+            guard char.value >= 48 && char.value <= 102 else {
+                removeAll()
+                return
+            }
+            let v: UInt8
+            let c: UInt8 = UInt8(char.value)
+            switch c {
+            case let c where c <= 57:
+                v = c - 48
+            case let c where c >= 65 && c <= 70:
+                v = c - 55
+            case let c where c >= 97:
+                v = c - 87
+            default:
+                removeAll()
+                return
+            }
+            if let b = buffer {
+                append(b << 4 | v)
+                buffer = nil
+            } else {
+                buffer = v
+            }
+        }
+        if let b = buffer {
+            append(b)
+        }
+    }
+    
+    init(base64: String) {
+        self.init()
+        
+        guard let decodedData = Data(base64Encoded: base64) else {
+            return
+        }
+        
+        append(contentsOf: decodedData.bytes)
+    }
+    
+    func toBase64() -> String {
+        Data(self).base64EncodedString()
+    }
+    
+    public func toHexString() -> String {
+        `lazy`.reduce(into: "") {
+            var s = String($1, radix: 16)
+            if s.count == 1 {
+                s = "0" + s
+            }
+            $0 += s
+        }
+    }
+}
+
+extension String {
+    
+    @inlinable
+    public var bytes: Array<UInt8> {
+        data(using: String.Encoding.utf8, allowLossyConversion: true)?.bytes ?? Array(utf8)
+    }
+}
+*/

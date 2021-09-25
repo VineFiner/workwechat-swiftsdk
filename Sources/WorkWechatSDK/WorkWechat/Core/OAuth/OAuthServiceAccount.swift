@@ -9,6 +9,7 @@ import Foundation
 import NIOHTTP1
 import AsyncHTTPClient
 import NIO
+import NIOFoundationCompat
 
 public final class OAuthServiceAccount: OAuthRefreshable {
     public let httpClient: HTTPClient
