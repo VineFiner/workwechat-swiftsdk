@@ -11,7 +11,7 @@ import Logging
 import NIO
 
 public final class NormalClient {
-    var request: NormalRequest
+    public private(set) var request: NormalRequest
     
     public init(credentials: OAuthAccountCredentials,  httpClient: HTTPClient, eventLoop: EventLoop, logger: Logger) {
         let refreshableToken = OAuthCredentialLoader.getRefreshableToken(credentials: credentials,
@@ -29,7 +29,7 @@ public final class NormalClient {
 
 extension NormalClient {
     
-    var endpoint: String {
+    public var endpoint: String {
         return "https://qyapi.weixin.qq.com"
     }
     
